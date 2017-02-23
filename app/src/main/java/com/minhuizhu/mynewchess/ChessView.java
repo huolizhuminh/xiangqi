@@ -6,12 +6,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.minhuizhu.mynewchess.util.MusicManager;
 import com.minhuizhu.mynewchess.util.Util;
 
 /**
@@ -115,6 +115,8 @@ public class ChessView extends View {
                     pos.addPiece(sq, pc);
                 }
             }
+            //0表示新的局面 1表示用之前保存的局面 2表示用之前保存的局面 并且切换先后手
+            Log.i(TAGS,"load data rsData[0] ="+rsData[0]);
             if (rsData[0] == 2) {
                 pos.changeSide();
             }
@@ -127,6 +129,7 @@ public class ChessView extends View {
         if (isInvalid) {
             invalidate();
         }
+        Log.i(TAGS,"load data pos.sdPlayer ="+pos.sdPlayer+"moveMode="+moveMode);
         if (pos.sdPlayer == 0 ? moveMode == COMPUTER_RED
                 : moveMode == COMPUTER_BLACK) {
             new Thread() {
@@ -177,13 +180,11 @@ public class ChessView extends View {
     }
 
     protected void drawChess(Canvas canvas) {
-        Log.e(TAGS, "drawChess" + Thread.currentThread().getName() + "begin time " + SystemClock.currentThreadTimeMillis());
 
         drawBackground(canvas);
         drawBoard(canvas);
         drawEveryChess(canvas);
         drawLastMoveChess(canvas);
-        Log.e(TAGS, "drawChess" + Thread.currentThread().getName() + "end time " + SystemClock.currentThreadTimeMillis());
     }
 
     private void drawLastMoveChess(Canvas canvas) {
@@ -316,6 +317,7 @@ public class ChessView extends View {
             mvLast = 0;
             sqSelected = sq;
             invalidate();
+            MusicManager.getInstance().playBtnDownMusic();
         } else {
             if (sqSelected <= 0) {
                 return;
@@ -323,8 +325,10 @@ public class ChessView extends View {
             boolean isValidMove = addMove(Position.MOVE(sqSelected, sq));
 
             if (isValidMove) {
-                Log.e(TAGS, "startValid" + Thread.currentThread().getName() + "invalid begin" + SystemClock.currentThreadTimeMillis());
+
                 invalidate();
+                MusicManager.getInstance().playGoMusic();
+
                 responseMove();
             }
         }
@@ -392,18 +396,19 @@ public class ChessView extends View {
         return false;
     }
 
-    public  void notifyStep() {
+    public void notifyStep() {
+        if(phase==PHASE_THINKING){
+            return;
+        }
         phase = PHASE_THINKING;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.e(TAGS, Thread.currentThread().getName() + "begin thread");
-                mvLast = search.searchMain(1000 << (level << 1));
+                mvLast = search.searchMain(level);
                 pos.makeMove(mvLast);
                 final int response = pos.inCheck() ? RESP_CHECK2
                         : pos.captured() ? RESP_CAPTURE2 : RESP_MOVE2;
                 phase = PHASE_WAITING;
-                Log.e(TAGS, Thread.currentThread().getName() + "end thread");
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -411,7 +416,7 @@ public class ChessView extends View {
                         if (getResult(response)) {
                             rsData[0] = 0;
                             phase = PHASE_EXITTING;
-                        }else {
+                        } else {
                             responseMove();
                         }
                     }
@@ -432,17 +437,16 @@ public class ChessView extends View {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.e(TAGS, Thread.currentThread().getName() + "begin thread");
-                mvLast = search.searchMain(1000 << (level << 1));
+                mvLast = search.searchMain(level);
                 pos.makeMove(mvLast);
                 final int response = pos.inCheck() ? RESP_CHECK2
                         : pos.captured() ? RESP_CAPTURE2 : RESP_MOVE2;
                 phase = PHASE_WAITING;
-                Log.e(TAGS, Thread.currentThread().getName() + "end thread");
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
                         invalidate();
+                        MusicManager.getInstance().playGoMusic();
                         if (getResult(response)) {
                             rsData[0] = 0;
                             phase = PHASE_EXITTING;
@@ -460,7 +464,13 @@ public class ChessView extends View {
             return;
         } else {
             pos.goBack();
-            mvLast = pos.getLastMove();
+
+            int currentmvLast = pos.getLastMove();
+            if (currentmvLast != mvLast) {
+                mvLast = currentmvLast;
+                MusicManager.getInstance().playGoMusic();
+                MusicManager.getInstance().playGoMusic();
+            }
             invalidate();
         }
     }

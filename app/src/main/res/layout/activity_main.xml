@@ -79,7 +79,7 @@
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="120dp"
+        android:layout_width="140dp"
         android:layout_height="match_parent"
         android:layout_alignParentRight="true"
         android:orientation="vertical"
@@ -89,14 +89,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="思考步骤："
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textColor="@android:color/black"
             />
         <TextView
             android:id="@+id/step"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
+            android:textSize="12sp"
             android:textColor="@android:color/black"
             />
 

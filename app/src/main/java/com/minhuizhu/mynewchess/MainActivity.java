@@ -2,31 +2,42 @@ package com.minhuizhu.mynewchess;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.view.View;
+import android.widget.TextView;
 
 import com.minhuizhu.mynewchess.util.ACache;
+import com.minhuizhu.mynewchess.util.MusicManager;
 import com.minhuizhu.mynewchess.util.Util;
+import com.minhuizhu.mynewchess.widget.SettingDialog;
+import com.minhuizhu.mynewchess.widget.Slider;
 
 public class MainActivity extends Activity {
 
-    private static final String RS_DATA = "rs_data";
+
+    private static final int REMOVE_STEP = 1;
+
     private ChessView mChessView;
-    private boolean started = false;
-    static final String[] SOUND_NAME = {"click", "illegal", "move", "move2",
-            "capture", "capture2", "check", "check2", "win", "draw", "loss",};
+
+
+    private View newGame;
+    private View advise;
+    private View goBack;
+    private View setting;
+    private View exit;
+    private TextView stepTv;
 
     static final int RS_DATA_LEN = 512;
 
     byte[] rsData = new byte[RS_DATA_LEN];
     //moveMode用以判斷所執顏色
     int moveMode, handicap, level, sound, music;
-    private View newGame;
-    private View advise;
-    private View goBack;
-    private View setting;
-    private View exit;
-    private View step;
+    private boolean started = false;
     private ACache acache;
+    private static final String RS_DATA = "rs_data";
+    public static Handler handler;
+    private static final int THINKING_STEP = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +74,26 @@ public class MainActivity extends Activity {
                 mChessView.notifyStep();
             }
         });
+        setting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SettingDialog settingDialog = new SettingDialog(MainActivity.this, MusicManager.getInstance().getVolume(), mChessView.level);
+                settingDialog.show();
+                settingDialog.setMusicSliderListener(new Slider.OnValueChangedListener() {
+                    @Override
+                    public void onValueChanged(int value) {
+                        MusicManager.getInstance().setVolume(value);
+                    }
+                });
+                settingDialog.setStrengthSliderListener(new Slider.OnValueChangedListener() {
+                    @Override
+                    public void onValueChanged(int value) {
+                        mChessView.level = value;
+                        level = value;
+                    }
+                });
+            }
+        });
     }
 
     private void goBack() {
@@ -73,6 +104,53 @@ public class MainActivity extends Activity {
         acache = ACache.get(getApplication());
         Position.readBookData(this);
         startApp();
+        handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                int code = msg.what;
+                switch (code) {
+                    case THINKING_STEP:
+                        showStepResult((String) msg.obj);
+                        break;
+                    case REMOVE_STEP:
+                        removeStep();
+                        break;
+                }
+            }
+        };
+    }
+
+    private void removeStep() {
+        stepTv.setText("");
+    }
+
+    private void showStepResult(String message) {
+        String initText = stepTv.getText().toString();
+        stepTv.setText(initText + message);
+    }
+
+    private void startApp() {
+        if (started) {
+            return;
+        }
+        started = true;
+        rsData = acache.getAsBinary(RS_DATA);
+        if (rsData == null || rsData.length != RS_DATA_LEN) {
+            initSquareData();
+            initSettingData();
+
+        }
+        getInitDataFromRsData();
+        initBackgroundData();
+        mChessView.load(rsData, handicap, moveMode, level, true);
+    }
+
+    private void initSettingData() {
+        if (rsData == null) {
+            rsData = new byte[RS_DATA_LEN];
+        }
+        rsData[18] = 5;
+        rsData[20] = 3;
     }
 
     private void initView() {
@@ -82,22 +160,7 @@ public class MainActivity extends Activity {
         goBack = findViewById(R.id.go_back);
         setting = findViewById(R.id.setting);
         exit = findViewById(R.id.exit);
-        step = findViewById(R.id.step);
-    }
-
-
-    private void startApp() {
-        if (started) {
-            return;
-        }
-        started = true;
-        rsData = acache.getAsBinary(RS_DATA);
-        if (rsData == null || rsData.length != RS_DATA_LEN) {
-            initRsData();
-            getInitDataFromRsData();
-        }
-        mChessView.load(rsData, handicap, moveMode, level, true);
-
+        stepTv = (TextView) findViewById(R.id.step);
     }
 
     @Override
@@ -107,18 +170,16 @@ public class MainActivity extends Activity {
     }
 
     private void newGame() {
-        initRsData();
+        initSquareData();
         moveMode = 1 - moveMode;
         mChessView.load(rsData, handicap, moveMode, level, true);
     }
 
-    private void initRsData() {
+    private void initSquareData() {
         rsData = new byte[RS_DATA_LEN];
-        for (int i = 0; i < RS_DATA_LEN; i++) {
+        for (int i = 256; i < RS_DATA_LEN; i++) {
             rsData[i] = 0;
         }
-        rsData[19] = 3;
-        rsData[20] = 2;
     }
 
     public void destroyApp(boolean unc) {
@@ -127,21 +188,28 @@ public class MainActivity extends Activity {
             rsData[i] = 0;
         }
         System.arraycopy(mChessView.getSquares(), 0, rsData, 256, 256);
-        rsData[0] = 1;
+
         rsData[16] = (byte) moveMode;
+        if (moveMode == 1) {
+            rsData[0] = 2;
+        }
         rsData[17] = (byte) handicap;
-        rsData[18] = (byte) level;
+        rsData[18] = (byte) mChessView.level;
         rsData[19] = (byte) sound;
-        rsData[20] = (byte) music;
+        rsData[20] = (byte) MusicManager.getInstance().getVolume();
         acache.put(RS_DATA, rsData);
         started = false;
+    }
+
+    private void initBackgroundData() {
+        MusicManager.getInstance().setVolume(music);
     }
 
     public void getInitDataFromRsData() {
         //需要有設置按鈕
         moveMode = (byte) Util.MIN_MAX(0, rsData[16], 2);
         handicap = (byte) Util.MIN_MAX(0, rsData[17], 3);
-        level = (byte) Util.MIN_MAX(0, rsData[18], 2);
+        level = rsData[18];
         sound = (byte) Util.MIN_MAX(0, rsData[19], 5);
         music = (byte) Util.MIN_MAX(0, rsData[20], 5);
     }

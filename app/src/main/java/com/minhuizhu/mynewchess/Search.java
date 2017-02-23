@@ -1,5 +1,8 @@
 package com.minhuizhu.mynewchess;
 
+import android.os.Message;
+import android.util.Log;
+
 import com.minhuizhu.mynewchess.util.Util;
 
 /**
@@ -10,6 +13,7 @@ class HashItem {
     short vl;
     int mv, zobristLock;
 }
+
 public class Search {
     private static final int HASH_ALPHA = 1;
     private static final int HASH_BETA = 2;
@@ -21,55 +25,93 @@ public class Search {
     private static final int MATE_VALUE = Position.MATE_VALUE;
     private static final int BAN_VALUE = Position.BAN_VALUE;
     private static final int WIN_VALUE = Position.WIN_VALUE;
-
+    private String TAGS = "Search";
     private int hashMask, mvResult, allNodes, allMillis;
     private HashItem[] hashTable;
-    Position pos;
+    Position searchPosition;
+    Position initPosition;
     int[] historyTable = new int[4096];
     int[][] mvKiller = new int[LIMIT_DEPTH][2];
+    private boolean needSearch;
+
     public Search(Position pos, int hashLevel) {
-        this.pos = pos;
+        this.initPosition = pos;
         hashMask = (1 << hashLevel) - 1;
         hashTable = new HashItem[hashMask + 1];
-        for (int i = 0; i <= hashMask; i ++) {
+        for (int i = 0; i <= hashMask; i++) {
             hashTable[i] = new HashItem();
         }
     }
 
-    public int searchMain(int millis) {
-        return searchMain(LIMIT_DEPTH, millis);
+    public int searchMain(int level) {
+        MainActivity.handler.sendEmptyMessage(1);
+        final int millis;
+        if (level < 0) {
+            level = 0;
+        } else if (level > 2) {
+            level = 2;
+        }
+        if (level == 0) {
+            millis = 1000;
+        } else if (level == 1) {
+            millis = 2500;
+        } else {
+            millis = 6000;
+        }
+        searchPosition = (Position) initPosition.deepCopy();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                needSearch = true;
+                searchMain(LIMIT_DEPTH, millis);
+            }
+        }).start();
+        long t = System.currentTimeMillis();
+        try {
+            while (System.currentTimeMillis() - t < millis) {
+                Log.i(TAGS, "System.currentTimeMillis() - t =" + (System.currentTimeMillis() - t) + "millis=" + millis);
+                Thread.sleep(200);
+            }
+        } catch (Exception e) {
+
+        }
+        needSearch = false;
+        return mvResult;
+
     }
 
     public int searchMain(int depth, int millis) {
-        mvResult = pos.bookMove();
+        mvResult = searchPosition.bookMove();
         if (mvResult > 0) {
-            pos.makeMove(mvResult);
-            if (pos.repStatus(3) == 0) {
-                pos.undoMakeMove();
+            searchPosition.makeMove(mvResult);
+            if (searchPosition.repStatus(3) == 0) {
+                searchPosition.undoMakeMove();
                 return mvResult;
             }
-            pos.undoMakeMove();
+            searchPosition.undoMakeMove();
         }
-        for (int i = 0; i <= hashMask; i ++) {
+        for (int i = 0; i <= hashMask; i++) {
             HashItem hash = hashTable[i];
             hash.depth = hash.flag = 0;
             hash.vl = 0;
             hash.mv = hash.zobristLock = 0;
         }
-        for (int i = 0; i < LIMIT_DEPTH; i ++) {
+        for (int i = 0; i < LIMIT_DEPTH; i++) {
             mvKiller[i][0] = mvKiller[i][1] = 0;
         }
-        for (int i = 0; i < 4096; i ++) {
+        for (int i = 0; i < 4096; i++) {
             historyTable[i] = 0;
         }
         mvResult = 0;
         allNodes = 0;
-        pos.distance = 0;
+        searchPosition.distance = 0;
         long t = System.currentTimeMillis();
-        for (int i = 1; i <= depth; i ++) {
+        for (int i = 1; i <= depth; i++) {
             int vl = searchRoot(i);
             allMillis = (int) (System.currentTimeMillis() - t);
+            Log.i(TAGS, "i=" + i + "allMillis==" + allMillis + "millis=" + millis);
             if (allMillis > millis) {
+                Log.i(TAGS, "i=" + i + "allMillis==" + allMillis + "millis=" + millis);
                 break;
             }
             if (vl > WIN_VALUE || vl < -WIN_VALUE) {
@@ -78,8 +120,18 @@ public class Search {
             if (searchUnique(1 - WIN_VALUE, i)) {
                 break;
             }
+            sendMessage(i);
+
         }
         return mvResult;
+    }
+
+    private void sendMessage(int i) {
+        Message message = Message.obtain();
+        message.what = 0;
+        String mssageObj = searchPosition.getMoveMessage(mvResult);
+        message.obj = "层级" + i + "结果:" + mssageObj + "\n";
+        MainActivity.handler.sendMessage(message);
     }
 
     public boolean searchUnique(int vlBeta, int depth) {
@@ -87,11 +139,11 @@ public class Search {
         sort.next();
         int mv;
         while ((mv = sort.next()) > 0) {
-            if (!pos.makeMove(mv)) {
+            if (!searchPosition.makeMove(mv)) {
                 continue;
             }
-            int vl = -searchFull(-vlBeta, 1 - vlBeta, pos.inCheck() ? depth : depth - 1);
-            pos.undoMakeMove();
+            int vl = -searchFull(-vlBeta, 1 - vlBeta, searchPosition.inCheck() ? depth : depth - 1);
+            searchPosition.undoMakeMove();
             if (vl >= vlBeta) {
                 return false;
             }
@@ -104,10 +156,13 @@ public class Search {
         SortItem sort = new SortItem(mvResult);
         int mv;
         while ((mv = sort.next()) > 0) {
-            if (!pos.makeMove(mv)) {
+            if (!needSearch) {
+                return vlBest;
+            }
+            if (!searchPosition.makeMove(mv)) {
                 continue;
             }
-            int newDepth = pos.inCheck() ? depth : depth - 1;
+            int newDepth = searchPosition.inCheck() ? depth : depth - 1;
             int vl;
             if (vlBest == -MATE_VALUE) {
                 vl = -searchNoNull(-MATE_VALUE, MATE_VALUE, newDepth);
@@ -117,20 +172,21 @@ public class Search {
                     vl = -searchNoNull(-MATE_VALUE, -vlBest, newDepth);
                 }
             }
-            pos.undoMakeMove();
+            searchPosition.undoMakeMove();
             if (vl > vlBest) {
                 vlBest = vl;
                 mvResult = mv;
                 if (vlBest > -WIN_VALUE && vlBest < WIN_VALUE) {
                     vlBest += (Position.random.nextInt() & RANDOM_MASK) -
                             (Position.random.nextInt() & RANDOM_MASK);
-                    vlBest = (vlBest == pos.drawValue() ? vlBest - 1 : vlBest);
+                    vlBest = (vlBest == searchPosition.drawValue() ? vlBest - 1 : vlBest);
                 }
             }
         }
         setBestMove(mvResult, depth);
         return vlBest;
     }
+
     private int searchNoNull(int vlAlpha, int vlBeta, int depth) {
         return searchFull(vlAlpha, vlBeta, depth, true);
     }
@@ -146,14 +202,14 @@ public class Search {
         if (depth <= 0) {
             return searchQuiesc(vlAlpha, vlBeta);
         }
-        allNodes ++;
-        vl = pos.mateValue();
+        allNodes++;
+        vl = searchPosition.mateValue();
         if (vl >= vlBeta) {
             return vl;
         }
-        int vlRep = pos.repStatus();
+        int vlRep = searchPosition.repStatus();
         if (vlRep > 0) {
-            return pos.repValue(vlRep);
+            return searchPosition.repValue(vlRep);
         }
         int[] mvHash = new int[1];
         //查询搜索分支历史
@@ -161,14 +217,14 @@ public class Search {
         if (vl > -MATE_VALUE) {
             return vl;
         }
-        if (pos.distance == LIMIT_DEPTH) {
-            return pos.evaluate();
+        if (searchPosition.distance == LIMIT_DEPTH) {
+            return searchPosition.evaluate();
         }
-        if (!noNull && !pos.inCheck() && pos.nullOkay()) {
-            pos.nullMove();
+        if (!noNull && !searchPosition.inCheck() && searchPosition.nullOkay()) {
+            searchPosition.nullMove();
             vl = -searchNoNull(-vlBeta, 1 - vlBeta, depth - NULL_DEPTH - 1);
-            pos.undoNullMove();
-            if (vl >= vlBeta && (pos.nullSafe() || searchNoNull(vlAlpha, vlBeta, depth - NULL_DEPTH) >= vlBeta)) {
+            searchPosition.undoNullMove();
+            if (vl >= vlBeta && (searchPosition.nullSafe() || searchNoNull(vlAlpha, vlBeta, depth - NULL_DEPTH) >= vlBeta)) {
                 return vl;
             }
         }
@@ -178,10 +234,13 @@ public class Search {
         SortItem sort = new SortItem(mvHash[0]);
         int mv;
         while ((mv = sort.next()) > 0) {
-            if (!pos.makeMove(mv)) {
+            if (!needSearch) {
+                return vlBest;
+            }
+            if (!searchPosition.makeMove(mv)) {
                 continue;
             }
-            int newDepth = pos.inCheck() || sort.singleReply ? depth : depth - 1;
+            int newDepth = searchPosition.inCheck() || sort.singleReply ? depth : depth - 1;
             if (vlBest == -MATE_VALUE) {
                 vl = -searchFull(-vlBeta, -vlAlpha, newDepth);
             } else {
@@ -190,7 +249,7 @@ public class Search {
                     vl = -searchFull(-vlBeta, -vlAlpha, newDepth);
                 }
             }
-            pos.undoMakeMove();
+            searchPosition.undoMakeMove();
             if (vl > vlBest) {
                 vlBest = vl;
                 if (vl >= vlBeta) {
@@ -199,6 +258,7 @@ public class Search {
                     break;
                 }
                 if (vl > vlAlpha) {
+                    Log.i(TAGS, "searchPosition.sdPlayer = " + searchPosition.sdPlayer);
                     vlAlpha = vl;
                     hashFlag = HASH_PV;
                     mvBest = mv;
@@ -206,7 +266,7 @@ public class Search {
             }
         }
         if (vlBest == -MATE_VALUE) {
-            return pos.mateValue();
+            return searchPosition.mateValue();
         }
         //保存历史
         recordHash(hashFlag, vlBest, depth, mvBest);
@@ -219,7 +279,7 @@ public class Search {
     private int probeHash(int vlAlpha, int vlBeta, int depth, int[] mv) {
         HashItem hash = getHashItem();
 
-        if (hash.zobristLock != pos.zobristLock) {
+        if (hash.zobristLock != searchPosition.zobristLock) {
             mv[0] = 0;
             return -MATE_VALUE;
         }
@@ -229,15 +289,15 @@ public class Search {
             if (hash.vl <= BAN_VALUE) {
                 return -MATE_VALUE;
             }
-            hash.vl -= pos.distance;
+            hash.vl -= searchPosition.distance;
             mate = true;
         } else if (hash.vl < -WIN_VALUE) {
             if (hash.vl >= -BAN_VALUE) {
                 return -MATE_VALUE;
             }
-            hash.vl += pos.distance;
+            hash.vl += searchPosition.distance;
             mate = true;
-        } else if (hash.vl == pos.drawValue()) {
+        } else if (hash.vl == searchPosition.drawValue()) {
             return -MATE_VALUE;
         }
         if (hash.depth >= depth || mate) {
@@ -253,8 +313,9 @@ public class Search {
 
     //通过 zobristKey 获取记录中的局面
     private HashItem getHashItem() {
-        return hashTable[pos.zobristKey & hashMask];
+        return hashTable[searchPosition.zobristKey & hashMask];
     }
+
     private void recordHash(int flag, int vl, int depth, int mv) {
         HashItem hash = getHashItem();
         if (hash.depth > depth) {
@@ -266,51 +327,51 @@ public class Search {
             if (mv == 0 && vl <= BAN_VALUE) {
                 return;
             }
-            hash.vl = (short) (vl + pos.distance);
+            hash.vl = (short) (vl + searchPosition.distance);
         } else if (vl < -WIN_VALUE) {
             if (mv == 0 && vl >= -BAN_VALUE) {
                 return;
             }
-            hash.vl = (short) (vl - pos.distance);
-        } else if (vl == pos.drawValue() && mv == 0) {
+            hash.vl = (short) (vl - searchPosition.distance);
+        } else if (vl == searchPosition.drawValue() && mv == 0) {
             return;
         } else {
             hash.vl = (short) vl;
         }
         hash.mv = mv;
-        hash.zobristLock = pos.zobristLock;
+        hash.zobristLock = searchPosition.zobristLock;
     }
 
     private int searchQuiesc(int vlAlpha_, int vlBeta) {
         int vlAlpha = vlAlpha_;
-        allNodes ++;
+        allNodes++;
         //判断是否已被杀
-        int vl = pos.mateValue();
+        int vl = searchPosition.mateValue();
         if (vl >= vlBeta) {
             return vl;
         }
         //判断是否长作
-        int vlRep = pos.repStatus();
+        int vlRep = searchPosition.repStatus();
         if (vlRep > 0) {
-            return pos.repValue(vlRep);
+            return searchPosition.repValue(vlRep);
         }
         //到达极限直接返回值
-        if (pos.distance == LIMIT_DEPTH) {
-            return pos.evaluate();
+        if (searchPosition.distance == LIMIT_DEPTH) {
+            return searchPosition.evaluate();
         }
         int vlBest = -MATE_VALUE;
         int genMoves;
         int[] mvs = new int[MAX_GEN_MOVES];
         //
-        if (pos.inCheck()) {
-            genMoves = pos.generateAllMoves(mvs);
+        if (searchPosition.inCheck()) {
+            genMoves = searchPosition.generateAllMoves(mvs);
             int[] vls = new int[MAX_GEN_MOVES];
-            for (int i = 0; i < genMoves; i ++) {
-                vls[i] = historyTable[pos.historyIndex(mvs[i])];
+            for (int i = 0; i < genMoves; i++) {
+                vls[i] = historyTable[searchPosition.historyIndex(mvs[i])];
             }
             Util.shellSort(mvs, vls, 0, genMoves);
         } else {
-            vl = pos.evaluate();
+            vl = searchPosition.evaluate();
             if (vl > vlBest) {
                 if (vl >= vlBeta) {
                     return vl;
@@ -319,21 +380,21 @@ public class Search {
                 vlAlpha = Math.max(vl, vlAlpha);
             }
             int[] vls = new int[MAX_GEN_MOVES];
-            genMoves = pos.generateMoves(mvs, vls);
+            genMoves = searchPosition.generateMoves(mvs, vls);
             Util.shellSort(mvs, vls, 0, genMoves);
-            for (int i = 0; i < genMoves; i ++) {
-                if (vls[i] < 10 || (vls[i] < 20 && Position.HOME_HALF(Position.DST(mvs[i]), pos.sdPlayer))) {
+            for (int i = 0; i < genMoves; i++) {
+                if (vls[i] < 10 || (vls[i] < 20 && Position.HOME_HALF(Position.DST(mvs[i]), searchPosition.sdPlayer))) {
                     genMoves = i;
                     break;
                 }
             }
         }
-        for (int i = 0; i < genMoves; i ++) {
-            if (!pos.makeMove(mvs[i])) {
+        for (int i = 0; i < genMoves; i++) {
+            if (!searchPosition.makeMove(mvs[i])) {
                 continue;
             }
             vl = -searchQuiesc(-vlBeta, -vlAlpha);
-            pos.undoMakeMove();
+            searchPosition.undoMakeMove();
             if (vl > vlBest) {
                 if (vl >= vlBeta) {
                     return vl;
@@ -342,7 +403,7 @@ public class Search {
                 vlAlpha = Math.max(vl, vlAlpha);
             }
         }
-        return vlBest == -MATE_VALUE ? pos.mateValue() : vlBest;
+        return vlBest == -MATE_VALUE ? searchPosition.mateValue() : vlBest;
     }
 
     private class SortItem {
@@ -359,11 +420,11 @@ public class Search {
         boolean singleReply = false;
 
         SortItem(int mvHash) {
-            if (!pos.inCheck()) {
+            if (!searchPosition.inCheck()) {
                 phase = PHASE_HASH;
                 this.mvHash = mvHash;
-                mvKiller1 = mvKiller[pos.distance][0];
-                mvKiller2 = mvKiller[pos.distance][1];
+                mvKiller1 = mvKiller[searchPosition.distance][0];
+                mvKiller2 = mvKiller[searchPosition.distance][1];
                 return;
             }
             phase = PHASE_REST;
@@ -372,16 +433,16 @@ public class Search {
             vls = new int[MAX_GEN_MOVES];
             moves = 0;
             int[] mvsAll = new int[MAX_GEN_MOVES];
-            int numAll = pos.generateAllMoves(mvsAll);
-            for (int i = 0; i < numAll; i ++) {
+            int numAll = searchPosition.generateAllMoves(mvsAll);
+            for (int i = 0; i < numAll; i++) {
                 int mv = mvsAll[i];
-                if (!pos.makeMove(mv)) {
+                if (!searchPosition.makeMove(mv)) {
                     continue;
                 }
-                pos.undoMakeMove();
+                searchPosition.undoMakeMove();
                 mvs[moves] = mv;
-                vls[moves] = mv == mvHash ? Integer.MAX_VALUE : historyTable[pos.historyIndex(mv)];
-                moves ++;
+                vls[moves] = mv == mvHash ? Integer.MAX_VALUE : historyTable[searchPosition.historyIndex(mv)];
+                moves++;
             }
             Util.shellSort(mvs, vls, 0, moves);
             index = 0;
@@ -397,13 +458,13 @@ public class Search {
             }
             if (phase == PHASE_KILLER_1) {
                 phase = PHASE_KILLER_2;
-                if (mvKiller1 != mvHash && mvKiller1 > 0 && pos.legalMove(mvKiller1)) {
+                if (mvKiller1 != mvHash && mvKiller1 > 0 && searchPosition.legalMove(mvKiller1)) {
                     return mvKiller1;
                 }
             }
             if (phase == PHASE_KILLER_2) {
                 phase = PHASE_GEN_MOVES;
-                if (mvKiller2 != mvHash && mvKiller2 > 0 && pos.legalMove(mvKiller2)) {
+                if (mvKiller2 != mvHash && mvKiller2 > 0 && searchPosition.legalMove(mvKiller2)) {
                     return mvKiller2;
                 }
             }
@@ -411,16 +472,16 @@ public class Search {
                 phase = PHASE_REST;
                 mvs = new int[MAX_GEN_MOVES];
                 vls = new int[MAX_GEN_MOVES];
-                moves = pos.generateAllMoves(mvs);
-                for (int i = 0; i < moves; i ++) {
-                    vls[i] = historyTable[pos.historyIndex(mvs[i])];
+                moves = searchPosition.generateAllMoves(mvs);
+                for (int i = 0; i < moves; i++) {
+                    vls[i] = historyTable[searchPosition.historyIndex(mvs[i])];
                 }
                 Util.shellSort(mvs, vls, 0, moves);
                 index = 0;
             }
             while (index < moves) {
                 int mv = mvs[index];
-                index ++;
+                index++;
                 if (mv != mvHash && mv != mvKiller1 && mv != mvKiller2) {
                     return mv;
                 }
@@ -428,10 +489,11 @@ public class Search {
             return 0;
         }
     }
+
     //搜索到好的走法之后给好的走法加分
     private void setBestMove(int mv, int depth) {
-        historyTable[pos.historyIndex(mv)] += depth * depth;
-        int[] killers = mvKiller[pos.distance];
+        historyTable[searchPosition.historyIndex(mv)] += depth * depth;
+        int[] killers = mvKiller[searchPosition.distance];
         if (killers[0] != mv) {
             killers[1] = killers[0];
             killers[0] = mv;

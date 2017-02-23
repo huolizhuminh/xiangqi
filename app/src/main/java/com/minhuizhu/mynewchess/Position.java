@@ -2,17 +2,23 @@ package com.minhuizhu.mynewchess;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import com.minhuizhu.mynewchess.util.Util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.Random;
 
 /**
  * Created by zhuminh on 2017/2/2.
  */
-public class Position {
+public class Position implements Serializable {
     public static final byte[] IN_BOARD = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
@@ -217,13 +223,13 @@ public class Position {
     public static int[] bookLock = new int[MAX_BOOK_SIZE];
     public static short[] bookMove = new short[MAX_BOOK_SIZE];
     public static short[] bookValue = new short[MAX_BOOK_SIZE];
-    //用于判断当前是红方(0)下还是黑方(1)下
+    //当前状态是红先还是黑先 红先是0,黑先是1
     public int sdPlayer;
     public byte[] squares = new byte[256];  //用于记录棋子的最新位置
     //判断局面的标志
     public int zobristKey;
     public int zobristLock;
-    public int vlWhite, vlBlack;
+    public int vlRed, vlBlack;
     public int moveNum, distance;
     public static final int MATE_VALUE = 10000;
     public static final int BAN_VALUE = MATE_VALUE - 100;
@@ -255,6 +261,11 @@ public class Position {
     public int[] keyList = new int[MAX_MOVE_NUM];
     public boolean[] chkList = new boolean[MAX_MOVE_NUM];
 
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
     public static void readBookData(Context context) {
         Util.RC4 rc4 = new Util.RC4(new byte[]{0});
         PreGen_zobristKeyPlayer = rc4.nextLong();
@@ -276,7 +287,6 @@ public class Position {
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
-        ;
         if (in != null) {
             try {
                 while (bookSize < MAX_BOOK_SIZE) {
@@ -384,7 +394,7 @@ public class Position {
             squares[sq] = 0;
         }
         zobristKey = zobristLock = 0;
-        vlWhite = vlBlack = 0;
+        vlRed = vlBlack = 0;
     }
 
     public void addPiece(int sq, int pc) {
@@ -400,7 +410,7 @@ public class Position {
         squares[sq] = (byte) (del ? 0 : pc);
         if (pc < 16) {
             pcAdjust = pc - 8;
-            vlWhite += del ? -PIECE_VALUE[pcAdjust][sq]
+            vlRed += del ? -PIECE_VALUE[pcAdjust][sq]
                     : PIECE_VALUE[pcAdjust][sq];
         } else {
             pcAdjust = pc - 16;
@@ -564,7 +574,8 @@ public class Position {
     public static int COORD_XY(int x, int y) {
         return x + (y << 4);
     }
-//用以切换执红还是之黑在矩阵中位置的变化
+
+    //用以切换执红还是之黑在矩阵中位置的变化
     public static int SQUARE_FLIP(int sq) {
         return 254 - sq;
     }
@@ -836,9 +847,11 @@ public class Position {
                 + ((vlRep & 4) == 0 ? 0 : -banValue());
         return vlReturn == 0 ? drawValue() : vlReturn;
     }
+
     public int banValue() {
         return distance - BAN_VALUE;
     }
+
     public static int BISHOP_PIN(int sqSrc, int sqDst) {//用于找到象挡脚的位置
         return (sqSrc + sqDst) >> 1;
     }
@@ -1036,7 +1049,7 @@ public class Position {
 
 
     public int evaluate() {
-        int vl = (sdPlayer == 0 ? vlWhite - vlBlack : vlBlack - vlWhite)
+        int vl = (sdPlayer == 0 ? vlRed - vlBlack : vlBlack - vlRed)
                 + ADVANCED_VALUE;
         return vl == drawValue() ? vl - 1 : vl;
     }
@@ -1046,11 +1059,11 @@ public class Position {
     }
 
     public boolean nullOkay() {
-        return (sdPlayer == 0 ? vlWhite : vlBlack) > NULL_OKAY_MARGIN;
+        return (sdPlayer == 0 ? vlRed : vlBlack) > NULL_OKAY_MARGIN;
     }
 
     public boolean nullSafe() {
-        return (sdPlayer == 0 ? vlWhite : vlBlack) > NULL_SAFE_MARGIN;
+        return (sdPlayer == 0 ? vlRed : vlBlack) > NULL_SAFE_MARGIN;
     }
 
 
@@ -1070,7 +1083,69 @@ public class Position {
     }
 
     public int getLastMove() {
-        return mvList[moveNum-1];
+        return mvList[moveNum - 1];
+    }
+
+    public Object deepCopy() {
+        try {
+            // 将该对象序列化成流,因为写在流里的是对象的一个拷贝，而原对象仍然存在于JVM里面。所以利用这个特性可以实现对象的深拷贝
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+
+            oos.writeObject(this);
+
+            // 将流序列化成对象
+            ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+
+            ObjectInputStream ois = new ObjectInputStream(bis);
+
+            return ois.readObject();
+        } catch (Exception e) {
+
+        }
+        return null;
+    }
+
+    public String getMoveMessage(int mvResult) {
+        boolean hasRepeateChess = false;
+        boolean isBack = false;
+        int sqDest = mvResult >> 8;
+        int sqSrc = mvResult & 255;
+        int pc = squares[sqSrc];
+        String color = pc >= 16 ? "黑" : "红";
+        String chesses[] = new String[]{"帅", "仕", "相", "馬", "車", "炮", "兵", "",
+                "将", "士", "象", "馬 ", "車", "炮", "卒"};
+        String chess = chesses[pc - 8];
+        int srcLie = sqSrc & 15;
+        int srchang = sqSrc >> 4;
+        for (int i = 3; i <= 12; i++) {
+            int index =(i << 4 ) + srcLie;
+            Log.e(getClass().getName(), "index =" + index);
+            if (i != srchang && squares[srcLie+(i << 4)  ] == pc) {
+                hasRepeateChess = true;
+                isBack = ((srchang < i) ^(pc < 16) );
+            }
+        }
+
+
+        int boardLie = pc >= 16 ? srcLie - 2 : 12 - srcLie;
+        String str[] = new String[]{"一", "二", "三", "四", "五", "六", "七", "八", "九"};
+        int desLie = sqDest & 15;
+        int deshang = sqDest >> 4;
+        String moveStr;
+        String moveStep;
+        if (srchang == deshang) {
+            moveStr = "平";
+
+            moveStep = str[Math.abs(desLie - srcLie) - 1];
+
+        } else {
+            moveStr = ((deshang > srchang) ^ (pc >= 16)) ? "退" : "进";
+            moveStep = str[Math.abs(deshang - srchang) - 1];
+        }
+        return color + (hasRepeateChess ? (isBack ? "前" : "后") : "") + chess + (hasRepeateChess ? "" : str[boardLie-1]) + moveStr + moveStep;
+
     }
 }
 
