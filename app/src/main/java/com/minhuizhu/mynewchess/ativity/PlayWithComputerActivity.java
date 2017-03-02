@@ -1,4 +1,4 @@
-package com.minhuizhu.mynewchess;
+package com.minhuizhu.mynewchess.ativity;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -7,13 +7,16 @@ import android.os.Message;
 import android.view.View;
 import android.widget.TextView;
 
+import com.minhuizhu.mynewchess.ChessView;
+import com.minhuizhu.mynewchess.Position;
+import com.minhuizhu.mynewchess.R;
 import com.minhuizhu.mynewchess.util.ACache;
 import com.minhuizhu.mynewchess.util.MusicManager;
 import com.minhuizhu.mynewchess.util.Util;
 import com.minhuizhu.mynewchess.widget.SettingDialog;
 import com.minhuizhu.mynewchess.widget.Slider;
 
-public class MainActivity extends Activity {
+public class PlayWithComputerActivity extends Activity {
 
 
     private static final int REMOVE_STEP = 1;
@@ -42,7 +45,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_play_with_computer);
         initView();
         initData();
         addListener();
@@ -77,7 +80,7 @@ public class MainActivity extends Activity {
         setting.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SettingDialog settingDialog = new SettingDialog(MainActivity.this, MusicManager.getInstance().getVolume(), mChessView.level);
+                SettingDialog settingDialog = new SettingDialog(PlayWithComputerActivity.this, MusicManager.getInstance().getVolume(), mChessView.level);
                 settingDialog.show();
                 settingDialog.setMusicSliderListener(new Slider.OnValueChangedListener() {
                     @Override

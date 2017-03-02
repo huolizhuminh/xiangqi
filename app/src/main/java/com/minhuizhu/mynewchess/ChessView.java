@@ -459,7 +459,7 @@ public class ChessView extends View {
 
     }
 
-    void back() {
+    public void back() {
         if (phase == PHASE_THINKING) {
             return;
         } else {

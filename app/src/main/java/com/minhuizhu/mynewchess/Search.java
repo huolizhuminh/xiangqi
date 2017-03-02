@@ -3,6 +3,7 @@ package com.minhuizhu.mynewchess;
 import android.os.Message;
 import android.util.Log;
 
+import com.minhuizhu.mynewchess.ativity.PlayWithComputerActivity;
 import com.minhuizhu.mynewchess.util.Util;
 
 /**
@@ -44,7 +45,7 @@ public class Search {
     }
 
     public int searchMain(int level) {
-        MainActivity.handler.sendEmptyMessage(1);
+        PlayWithComputerActivity.handler.sendEmptyMessage(1);
         final int millis;
         if (level < 0) {
             level = 0;
@@ -131,7 +132,7 @@ public class Search {
         message.what = 0;
         String mssageObj = searchPosition.getMoveMessage(mvResult);
         message.obj = "层级" + i + "结果:" + mssageObj + "\n";
-        MainActivity.handler.sendMessage(message);
+        PlayWithComputerActivity.handler.sendMessage(message);
     }
 
     public boolean searchUnique(int vlBeta, int depth) {

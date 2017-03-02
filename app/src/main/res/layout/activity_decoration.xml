@@ -2,24 +2,30 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/back_ground"
+
     >
+
+    <com.minhuizhu.mynewchess.widget.DecorationChessView
+        android:id="@+id/decoration_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
     <LinearLayout
         android:layout_width="120dp"
-        android:layout_height="300dp"
-        android:layout_centerInParent="true"
+        android:layout_height="240dp"
         android:gravity="center_horizontal"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
         android:orientation="vertical">
+
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
 
             <Button
-                android:id="@+id/play_with_computer"
+                android:id="@+id/red_first"
                 style="@style/btn"
-                android:text="单机游戏" />
+                android:text="电脑执红" />
         </RelativeLayout>
 
         <RelativeLayout
@@ -28,9 +34,9 @@
             android:layout_weight="1">
 
             <Button
-                android:id="@+id/play_with_player"
+                android:id="@+id/black_first"
                 style="@style/btn"
-                android:text="联机游戏" />
+                android:text="电脑执黑" />
         </RelativeLayout>
 
         <RelativeLayout
@@ -41,9 +47,9 @@
 
 
             <Button
-                android:id="@+id/decoration"
+                android:id="@+id/begin_game"
                 style="@style/btn"
-                android:text="摆设棋局" />
+                android:text="开始游戏" />
         </RelativeLayout>
 
 
