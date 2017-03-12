@@ -49,7 +49,11 @@ public class DecorationChessView extends View {
     private Paint paint = new Paint();
     public int moveMode;
     private int sqSelected;
-    private int[] chooseChess = {0, 0, 0, 20, 21, 22, 0, 0, 0, 0, 14, 13, 12, 0, 0, 0, 0, 0, 0, 16, 17, 18, 19, 0, 0, 11, 10, 9, 8, 0, 0, 0};
+    private byte[] chooseChess = {0, 0, 0, 20, 21, 22, 0, 0, 0, 0, 14, 13, 12, 0, 0, 0, 0, 0, 0, 16, 17, 18, 19, 0, 0, 11, 10, 9, 8, 0, 0, 0};
+    private Bitmap imgSelected;
+    private byte selectedChoosePc;
+    private float moveX;
+    private float moveY;
 
     public void setMoveMode(int moveMode) {
         if (this.moveMode == moveMode || moveMode < 0 || moveMode > 1) {
@@ -113,6 +117,25 @@ public class DecorationChessView extends View {
         drawBoard(canvas);
         drawEveryChess(canvas);
         drawChooseChess(canvas);
+        drawSelectedChess(canvas);
+        drawMoveChess(canvas);
+    }
+
+    private void drawMoveChess(Canvas canvas) {
+        if (selectedChoosePc == 0) {
+            return;
+        }
+        int drawX = (int) (moveX - squareSize * 0.75);
+        int drawY = (int) (moveY - squareSize * 0.75);
+        Bitmap mBitmap = Bitmap.createScaledBitmap(imgPieces[selectedChoosePc], (int) (squareSize * 1.5), (int) (squareSize * 1.5), true);
+        canvas.drawBitmap(mBitmap, drawX, drawY, paint);
+    }
+
+    private void drawSelectedChess(Canvas canvas) {
+        if (sqSelected == 0) {
+            return;
+        }
+        drawSquare(canvas, imgSelected, sqSelected);
     }
 
 
@@ -155,6 +178,8 @@ public class DecorationChessView extends View {
         try {
             imgBoard = BitmapFactory.decodeResource(getResources(),
                     R.drawable.board);
+            imgSelected = BitmapFactory.decodeResource(getResources(),
+                    R.drawable.selected);
             for (int pc = 0; pc < 24; pc++) {
                 if (IMAGE_NAME[pc] == null) {
                     imgPieces[pc] = null;
@@ -192,41 +217,92 @@ public class DecorationChessView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        // TODO Auto-generated method stub
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-
-            pointerPressed(event.getX(), event.getY());
+        float x = event.getX();
+        float y = event.getY();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                selectedChoosePc = 0;
+                if (x > left && x < left + squareSize * 9) {
+                    pressCurrentChess(x, y);
+                } else if (x > width - 2 * squareSize) {
+                    pressChooseChess(x, y);
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                moveX = x;
+                moveY = y;
+                if (selectedChoosePc != 0) {
+                    invalidate();
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (selectedChoosePc != 0) {
+                    onChooseChessUp(event);
+                }
+                break;
         }
-        return super.onTouchEvent(event);
+        return true;
     }
 
-    protected void pointerPressed(float x, float y) {
-        cursorX = Util.MIN_MAX(0, ((int) x - left) / squareSize, 8);
-        cursorY = Util.MIN_MAX(0, ((int) y - top) / squareSize, 9);
-        clickSquare();
-
-    }
-
-    private void clickSquare() {
-        int sq = Position.COORD_XY(cursorX + Position.FILE_LEFT, cursorY
+    private void onChooseChessUp(MotionEvent event) {
+        cursorX = Util.MIN_MAX(0, ((int) event.getX() - left) / squareSize, 8);
+        cursorY = Util.MIN_MAX(0, ((int) event.getY() - top) / squareSize, 9);
+        int chooseUpSq = Position.COORD_XY(cursorX + Position.FILE_LEFT, cursorY
                 + Position.RANK_TOP);
         if (moveMode == COMPUTER_RED) {
-            sq = Position.SQUARE_FLIP(sq);
+            chooseUpSq = Position.SQUARE_FLIP(chooseUpSq);
         }
-        int pc = pos.squares[sq];
-        if ((pc & Position.SIDE_TAG(pos.sdPlayer)) != 0) {   //说明是同一边的棋子
+        if (pos.isLegalAdd(selectedChoosePc, chooseUpSq)) {
+            pos.squares[chooseUpSq] = selectedChoosePc;
+        }
+        selectedChoosePc = 0;
+        invalidate();
+    }
 
-            sqSelected = sq;
-            invalidate();
-            MusicManager.getInstance().playBtnDownMusic();
+    private void pressChooseChess(float x, float y) {
+        if (y > squareSize * 4 && y < height - squareSize * 4) {
+            return;
+        }
+        int chooseCursorX = (width - x < squareSize) ? 1 : 0;
+        int chooseCursorY = (int) (y / squareSize) + 3;
+        if (moveMode != 0) {
+            chooseCursorY = 15 - chooseCursorY;
+        }
+        selectedChoosePc = chooseChess[chooseCursorX * 16 + chooseCursorY];
+    }
+
+    protected void pressCurrentChess(float x, float y) {
+
+        cursorX = Util.MIN_MAX(0, ((int) x - left) / squareSize, 8);
+        cursorY = Util.MIN_MAX(0, ((int) y - top) / squareSize, 9);
+        int currentSq = Position.COORD_XY(cursorX + Position.FILE_LEFT, cursorY
+                + Position.RANK_TOP);
+        if (moveMode == COMPUTER_RED) {
+            currentSq = Position.SQUARE_FLIP(currentSq);
+        }
+        if (sqSelected == currentSq) {
+            pos.squares[sqSelected] = 0;
+            sqSelected = 0;
+
         } else {
-            if (sqSelected <= 0) {
-                return;
+            if (pos.squares[currentSq] != 0) {
+                sqSelected = currentSq;
+                MusicManager.getInstance().playBtnDownMusic();
+            } else {
+                sqSelected = 0;
             }
 
         }
+        invalidate();
     }
 
+    public int getMoveMode() {
+        return moveMode;
+    }
+
+    public byte[] getSquare() {
+        return pos.squares;
+    }
 }
 
 

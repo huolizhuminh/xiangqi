@@ -1,6 +1,7 @@
 package com.minhuizhu.mynewchess.ativity;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -37,6 +38,17 @@ public class DecorationActivity extends Activity {
             @Override
             public void onClick(View v) {
                 decorationView.setMoveMode(1);
+            }
+        });
+        beginGame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=   new Intent(DecorationActivity.this,PlayWithComputerActivity.class);
+                intent.putExtra(PlayWithComputerActivity.IS_FROM_DECORATION,true);
+                intent.putExtra(PlayWithComputerActivity.MOVE_MODE,decorationView.getMoveMode());
+                intent.putExtra(PlayWithComputerActivity.INIT_SQUARE,decorationView.getSquare());
+                startActivity(intent);
+                finish();
             }
         });
     }

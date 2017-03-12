@@ -20,6 +20,9 @@ public class PlayWithComputerActivity extends Activity {
 
 
     private static final int REMOVE_STEP = 1;
+    public static final String IS_FROM_DECORATION = "isFromDecoration";
+    public static final String MOVE_MODE = "move_mode";
+    public static final String INIT_SQUARE = "initSquare";
 
     private ChessView mChessView;
 
@@ -36,7 +39,6 @@ public class PlayWithComputerActivity extends Activity {
     byte[] rsData = new byte[RS_DATA_LEN];
     //moveMode用以判斷所執顏色
     int moveMode, handicap, level, sound, music;
-    private boolean started = false;
     private ACache acache;
     private static final String RS_DATA = "rs_data";
     public static Handler handler;
@@ -133,10 +135,35 @@ public class PlayWithComputerActivity extends Activity {
     }
 
     private void startApp() {
-        if (started) {
-            return;
+        boolean isFromDecoration = getIntent().getBooleanExtra(IS_FROM_DECORATION, false);
+
+        if (isFromDecoration) {
+            byte[] initSquare = getIntent().getByteArrayExtra(INIT_SQUARE);
+            if (initSquare == null || initSquare.length < 256) {
+                startFromCache();
+                return;
+            }
+            rsData = new byte[RS_DATA_LEN];
+            System.arraycopy(initSquare, 0, rsData, 256, 256);
+            initSettingData();
+            level = 5;
+            music = 3;
+            moveMode = getIntent().getIntExtra(MOVE_MODE, 0);
+            if (moveMode == 1) {
+                rsData[0] = 1;
+            } else {
+                rsData[0] = 2;
+            }
+
+            mChessView.load(rsData, handicap, moveMode, level, true);
+        } else {
+            startFromCache();
+
         }
-        started = true;
+
+    }
+
+    private void startFromCache() {
         rsData = acache.getAsBinary(RS_DATA);
         if (rsData == null || rsData.length != RS_DATA_LEN) {
             initSquareData();
@@ -201,7 +228,6 @@ public class PlayWithComputerActivity extends Activity {
         rsData[19] = (byte) sound;
         rsData[20] = (byte) MusicManager.getInstance().getVolume();
         acache.put(RS_DATA, rsData);
-        started = false;
     }
 
     private void initBackgroundData() {

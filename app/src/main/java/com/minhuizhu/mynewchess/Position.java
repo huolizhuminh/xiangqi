@@ -198,6 +198,10 @@ public class Position implements Serializable {
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0},};//兵
+    public static int LEGAL_KING[] = {54, 55, 56, 70, 71, 72, 86, 87, 88};
+    public static int LEGAL_ADVISOR[] = {54, 56, 71, 86, 88};
+    public static int LEGAL_BISHOP[] = {53, 57, 83, 87, 91, 117, 121};
+    public static int LEGAL_PAWN[] = {99,101,103,105,107,115,117,119,121,123};
     public static final String[] STARTUP_FEN = {
             "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1",
             "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/R1BAKABNR w - - 0 1",
@@ -1120,11 +1124,11 @@ public class Position implements Serializable {
         int srcLie = sqSrc & 15;
         int srchang = sqSrc >> 4;
         for (int i = 3; i <= 12; i++) {
-            int index =(i << 4 ) + srcLie;
+            int index = (i << 4) + srcLie;
             Log.e(getClass().getName(), "index =" + index);
-            if (i != srchang && squares[srcLie+(i << 4)  ] == pc) {
+            if (i != srchang && squares[srcLie + (i << 4)] == pc) {
                 hasRepeateChess = true;
-                isBack = ((srchang < i) ^(pc < 16) );
+                isBack = ((srchang < i) ^ (pc < 16));
             }
         }
 
@@ -1144,8 +1148,106 @@ public class Position implements Serializable {
             moveStr = ((deshang > srchang) ^ (pc >= 16)) ? "退" : "进";
             moveStep = str[Math.abs(deshang - srchang) - 1];
         }
-        return color + (hasRepeateChess ? (isBack ? "前" : "后") : "") + chess + (hasRepeateChess ? "" : str[boardLie-1]) + moveStr + moveStep;
+        return color + (hasRepeateChess ? (isBack ? "前" : "后") : "") + chess + (hasRepeateChess ? "" : str[boardLie - 1]) + moveStr + moveStep;
 
+    }
+
+    public boolean isLegalAdd(byte addPc, int addPosition) {
+        //同样的位置有子则不成立
+        if (addPosition < 0 || addPosition > 255 || squares[addPosition] != 0) {
+            return false;
+        }
+        //将不能有两个、兵不能有六个，其余不能有三个
+        int sumSize = 0;
+        for (int i = 0; i < 256; i++) {
+            if (squares[i] == addPc) {
+                sumSize++;
+            }
+        }
+        int pc = addPc & 7;
+        int legalSize = 2;
+
+        if (pc == PIECE_KING) {
+            legalSize = 1;
+        } else if (pc == PIECE_PAWN) {
+            legalSize = 5;
+        }
+        if (sumSize >= legalSize) {
+            return false;
+        }
+        //兵在本方半场 有特定的位置,并且两个兵不能在同一侧
+        if (pc == PIECE_PAWN) {
+            if((addPosition+16<128)^addPc>=16){
+                if(squares[addPosition+16]==addPc) {
+                    return false;
+                }
+            }
+            if((addPosition-16<128)^addPc>=16){
+                if(squares[addPosition-16]==addPc) {
+                    return false;
+                }
+            }
+            boolean legalPosition = false;
+            int position = addPosition;
+            if (addPc < 16) {
+                position = 254 - position;
+            }
+            for (int i = 0; i < LEGAL_PAWN.length; i++) {
+                if (LEGAL_PAWN[i] == position) {
+                    legalPosition = true;
+                    break;
+                }
+            }
+
+
+            return legalPosition;
+        }
+
+        if (pc == PIECE_KING) {
+            boolean legal = false;
+            int position = addPosition;
+            if (addPc < 16) {
+                position = 254 - position;
+            }
+            for (int i = 0; i < LEGAL_KING.length; i++) {
+                if (LEGAL_KING[i] == position) {
+                    legal = true;
+                    break;
+                }
+            }
+            return legal;
+        }
+        if (pc == PIECE_ADVISOR) {
+            boolean legal = false;
+            int position = addPosition;
+            if (addPc < 16) {
+                position = 254 - position;
+            }
+            for (int i = 0; i < LEGAL_ADVISOR.length; i++) {
+                if (LEGAL_ADVISOR[i] == position) {
+                    legal = true;
+                    break;
+                }
+            }
+            return legal;
+        }
+        if (pc == PIECE_BISHOP) {
+            boolean legal = false;
+            int position = addPosition;
+            if (addPc < 16) {
+                position = 254 - position;
+            }
+            for (int i = 0; i < LEGAL_BISHOP.length; i++) {
+                if (LEGAL_BISHOP[i] == position) {
+                    legal = true;
+                    break;
+                }
+            }
+            return legal;
+        }
+
+
+        return true;
     }
 }
 
