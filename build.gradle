@@ -60,6 +60,7 @@ ext {
             multidex       : "com.android.support:multidex:1.0.1",
             mockito        : "org.mockito:mockito-core:2.2.5",
             robolectric    : "org.robolectric:robolectric:3.0",
+            loger          : "com.orhanobut:logger:1.15",
             kotlin         : "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}",
             kotlin_ext     : "org.jetbrains.kotlin:kotlin-android-extensions:${kotlinVersion}",
             anko_sdk19     : "org.jetbrains.anko:anko-sdk19:${ankoVersion}",

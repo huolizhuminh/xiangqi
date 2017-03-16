@@ -30,7 +30,7 @@
             android:layout_centerVertical="true"
             android:text="棋力：" />
 
-        <com.minhuizhu.mynewchess.widget.Slider
+        <com.minhuizhu.mynewchess.widget.common.Slider
             android:id="@+id/strength"
             android:layout_width="200dp"
             android:layout_height="20dp"
@@ -68,7 +68,7 @@
             android:layout_centerVertical="true"
             android:text="音效：" />
 
-        <com.minhuizhu.mynewchess.widget.Slider
+        <com.minhuizhu.mynewchess.widget.common.Slider
             android:id="@+id/music"
             android:layout_width="200dp"
             android:layout_height="20dp"

@@ -8,22 +8,22 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
-        android:name=".MyApplication"
+        android:name=".core.MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/app_icon"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
-            android:name=".ativity.PlayWithComputerActivity"
+            android:name=".ui.game.PlayWithComputerActivity"
             android:screenOrientation="landscape"
             android:configChanges="keyboardHidden|orientation|screenSize"/>
         <activity
-            android:name=".ativity.DecorationActivity"
+            android:name=".ui.game.DecorationActivity"
             android:screenOrientation="landscape"
             android:configChanges="keyboardHidden|orientation|screenSize"/>
         <activity
-            android:name=".ativity.MainActivity"
+            android:name=".ui.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:screenOrientation="portrait">
             <intent-filter>

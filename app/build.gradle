@@ -158,6 +158,6 @@ dependencies {
             dependency.anko_sdk19,
             dependency.anko_support,
             dependency.anko_appcompat)
-
+    compile 'com.nineoldandroids:library:2.4.0'
     compile project(':http')
 }

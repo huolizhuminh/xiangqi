@@ -4,10 +4,10 @@
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.minhuizhu.mynewchess.ativity.PlayWithComputerActivity">
+    tools:context="com.minhuizhu.mynewchess.ui.game.PlayWithComputerActivity">
 
 
-    <com.minhuizhu.mynewchess.ChessView
+    <com.minhuizhu.mynewchess.widget.game.ChessView
         android:id="@+id/chess_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

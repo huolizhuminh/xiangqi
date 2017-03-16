@@ -38,6 +38,7 @@ dependencies {
             dependency.multidex,
             dependency.kotlin)
     testCompile(dependency.junit)
+    compile files('libs/sun.misc.BASE64Decoder.jar')
 }
 
 dependencies {
@@ -48,6 +49,7 @@ dependencies {
             dependency.percent,
             dependency.rxbinding,
             dependency.multidex,
+            dependency.loger,
             dependency.kotlin)
     testCompile(dependency.junit)
 }

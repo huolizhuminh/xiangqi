@@ -5,7 +5,7 @@
 
     >
 
-    <com.minhuizhu.mynewchess.widget.DecorationChessView
+    <com.minhuizhu.mynewchess.widget.game.DecorationChessView
         android:id="@+id/decoration_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
