@@ -1,30 +1,163 @@
 apply plugin: 'com.android.application'
+apply plugin: 'AndResGuard'
+apply plugin: 'com.getkeepsafe.dexcount'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 
-android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.0"
-    defaultConfig {
-        applicationId "com.minhuizhu.mynewchess"
-        minSdkVersion 15
-        targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
+buildscript {
+    repositories {
+        jcenter()
     }
 }
 
+andResGuard {
+    use7zip = true
+    useSign = true
+    keepRoot = false
+    whiteList = [
+            //your icon
+            "R.drawable.header",
+            //for umeng update
+            "R.string.um*",
+            "R.layout.um*",
+            "R.drawable.um*",
+            "R.anim.um*",
+            "R.color.um*",
+            "R.style.*um*",
+            "R.style.um*",
+            "R.id.um*"
+    ]
+    compressFilePattern = [
+            "*.png",
+            "*.jpg",
+            "*.jpeg",
+            "*.gif",
+            "resources.arsc"
+    ]
+    sevenzip {
+        artifact = 'com.tencent.mm:SevenZip:1.1.16'
+    }
+}
+
+
+repositories {
+    jcenter()
+    mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+def releaseTime() {
+    return new Date().format("yyyyMMdd_HHMM", TimeZone.getTimeZone("GMT+08:00"))
+}
+
+android {
+
+    compileSdkVersion appCompileSdkVersion
+    buildToolsVersion appBuildToolsVersion
+
+    defaultConfig {
+        applicationId "com.minhuizhu.mynewchess"
+        minSdkVersion appMinSdkVersion
+        targetSdkVersion appTargetSdkVersion
+        versionCode appVersionCode
+        versionName appVersionName
+        multiDexEnabled isMultiDex
+    }
+
+    compileOptions {
+        sourceCompatibility appJavaCompatibility
+        targetCompatibility appJavaCompatibility
+    }
+
+    signingConfigs {
+        config {
+            keyAlias 'Key@RuifuSoft'
+            keyPassword 'Key@RuifuSoft_73112fe48c9f4a04bbc5ceddb8a52f2d'
+            storeFile file('../KeyStore/ruifusoft.apk.key.jks')
+            storePassword 'Key.Store@RuifuSoft_45793461568c40218d83aa9a59e200e9'
+        }
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES.TXT'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/dependencies.txt'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/services/org.robolectric.internal.ShadowProvider'
+        pickFirst 'META-INF/common-compileReleaseKotlin.kotlin_module'
+    }
+
+    sourceSets {
+        main.jniLibs.srcDirs = ['libs']
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+    buildTypes {
+        release {
+            buildConfigField "boolean", "LOG_DEBUG", "false"
+            minifyEnabled true
+            zipAlignEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            signingConfig signingConfigs.config
+        }
+        debug {
+            buildConfigField "boolean", "LOG_DEBUG", "true"
+            applicationIdSuffix ".debug"
+            minifyEnabled false
+            debuggable true
+            jniDebuggable true
+            renderscriptDebuggable true
+            zipAlignEnabled false
+            testCoverageEnabled false // we cannot debug when it's true
+        }
+    }
+
+    String[] channelArray = appFlavors.split(',')
+    productFlavors {
+        for (int i = 0; i < channelArray.length; i++) {
+            def channel = channelArray[i]
+            "${channel}" {
+                manifestPlaceholders = [CHANNEL_VALUE: channel]
+            }
+        }
+    }
+
+    //!! REMARK !!
+    //add this library to work with Robolectric 3.0 when your API level >= 23.
+    //the HttpClient has been removed as of API Level 23, but Robolectric is automatically
+    //shadowing this class. So add it, even though you're not using it.
+    useLibrary 'org.apache.http.legacy'
+}
+
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:25.1.1'
-    compile 'com.nineoldandroids:library:2.4.0'
-    testCompile 'junit:junit:4.12'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    testCompile(dependency.junit,
+            dependency.mockito,
+            dependency.canary_op,
+            dependency.robolectric)
+    debugCompile(dependency.canary,
+            dependency.haha)
+    releaseCompile(dependency.canary_op)
+    compile (dependency.kotlin,
+            dependency.umeng_analytics,
+            dependency.umeng_upush,
+            dependency.anko_sdk19,
+            dependency.anko_support,
+            dependency.anko_appcompat)
+
+    compile project(':http')
 }

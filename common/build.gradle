@@ -1,0 +1,54 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion appCompileSdkVersion
+    buildToolsVersion appBuildToolsVersion
+
+    lintOptions {
+        abortOnError false
+    }
+
+    defaultConfig {
+        minSdkVersion appMinSdkVersion
+        targetSdkVersion appTargetSdkVersion
+        versionCode appVersionCode
+        versionName appVersionName
+        multiDexEnabled isMultiDex
+    }
+    compileOptions {
+        sourceCompatibility appJavaCompatibility
+        targetCompatibility appJavaCompatibility
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    compile(dependency.rxandroid,
+            dependency.retrofit,
+            dependency.gson,
+            dependency.design,
+            dependency.percent,
+            dependency.rxbinding,
+            dependency.multidex,
+            dependency.kotlin)
+    testCompile(dependency.junit)
+}
+
+dependencies {
+    compile(dependency.rxandroid,
+            dependency.retrofit,
+            dependency.gson,
+            dependency.design,
+            dependency.percent,
+            dependency.rxbinding,
+            dependency.multidex,
+            dependency.kotlin)
+    testCompile(dependency.junit)
+}
+
