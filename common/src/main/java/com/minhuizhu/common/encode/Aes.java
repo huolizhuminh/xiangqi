@@ -1,4 +1,4 @@
-package com.minhuizhu.common.encode.desaesrsa20.aes;
+package com.minhuizhu.common.encode;
 
 import java.io.UnsupportedEncodingException;
 import javax.crypto.Cipher;

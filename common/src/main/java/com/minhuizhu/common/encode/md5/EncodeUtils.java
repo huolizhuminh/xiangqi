@@ -2,6 +2,8 @@ package com.minhuizhu.common.encode.md5;
 
 import android.util.Base64;
 
+import com.minhuizhu.common.encode.Aes;
+
 /**
  * Created by pc on 2015/11/22.
  */
@@ -28,5 +30,16 @@ public class EncodeUtils {
 
     public static byte[] parseBase64String(String base64Str) {
         return Base64.decode(base64Str.getBytes(), Base64.NO_WRAP);
+    }
+
+    public static String generateRandomKey() {
+       int randmo= (int)  Math.random();
+        return String.valueOf(randmo);
+    }
+
+    public static String getUserAuth(int uin, String salt, String password, String randomKey) {
+        String key=uin+salt+password;
+        String value=uin+salt+password+randomKey;
+        return Aes.decrypt(value,key);
     }
 }
