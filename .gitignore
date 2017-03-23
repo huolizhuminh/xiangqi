@@ -1,9 +1,13 @@
 *.iml
 .gradle
 /local.properties
-/.idea/workspace.xml
-/.idea/libraries
 .DS_Store
 /build
 /captures
-.externalNativeBuild
+/.idea
+*.apk
+*.log
+build/
+*.iml___jb_bak___
+engine/.externalNativeBuild
+.idea/

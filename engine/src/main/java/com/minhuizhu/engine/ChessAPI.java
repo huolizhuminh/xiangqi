@@ -5,5 +5,9 @@ package com.minhuizhu.engine;
  */
 
 public class ChessAPI {
+    static {
+        System.loadLibrary("chess-engine");
+    }
 
+    public static native void clearBoard();
 }
