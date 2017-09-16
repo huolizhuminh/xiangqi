@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'AndResGuard'
 apply plugin: 'com.getkeepsafe.dexcount'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
@@ -10,34 +9,7 @@ buildscript {
     }
 }
 
-andResGuard {
-    use7zip = true
-    useSign = true
-    keepRoot = false
-    whiteList = [
-            //your icon
-            "R.drawable.header",
-            //for umeng update
-            "R.string.um*",
-            "R.layout.um*",
-            "R.drawable.um*",
-            "R.anim.um*",
-            "R.color.um*",
-            "R.style.*um*",
-            "R.style.um*",
-            "R.id.um*"
-    ]
-    compressFilePattern = [
-            "*.png",
-            "*.jpg",
-            "*.jpeg",
-            "*.gif",
-            "resources.arsc"
-    ]
-    sevenzip {
-        artifact = 'com.tencent.mm:SevenZip:1.1.16'
-    }
-}
+
 
 
 repositories {
