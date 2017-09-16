@@ -1,17 +1,15 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlinVersion = '1.0.6'
+    ext.kotlinVersion = '1.1.2'
     repositories {
         jcenter()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.3'
         classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.6.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
         classpath "org.jetbrains.kotlin:kotlin-android-extensions:${kotlinVersion}"
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
     }
 }
 allprojects {
@@ -42,16 +40,10 @@ ext {
     ankoVersion = "0.9"
 
     dependency = [
-            wire           : 'com.squareup.wire:wire-runtime:2.2.0',
-            rxandroid      : "io.reactivex:rxandroid:1.2.1",
-            rxbinding      : 'com.jakewharton.rxbinding:rxbinding:0.4.0',
-            retrofit       : "com.squareup.retrofit2:retrofit:2.1.0",
             gson           : "com.google.code.gson:gson:2.7",
             design         : "com.android.support:design:${appSupportVersion}",
             appcompat      : "com.android.support:appcompat-v7:${appSupportVersion}",
             percent        : "com.android.support:percent:${appSupportVersion}",
-            umeng_analytics: 'com.umeng.analytics:analytics:6.0.1',
-            umeng_upush    : 'com.umeng.push:upush:3.1.0',
             haha           : "com.squareup.haha:haha:2.0.3",
             canary         : "com.squareup.leakcanary:leakcanary-android:${leakcanaryVersion}",
             canary_op      : "com.squareup.leakcanary:leakcanary-android-no-op:${leakcanaryVersion}",
@@ -62,9 +54,6 @@ ext {
             loger          : "com.orhanobut:logger:1.15",
             kotlin         : "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}",
             kotlin_ext     : "org.jetbrains.kotlin:kotlin-android-extensions:${kotlinVersion}",
-            anko_sdk19     : "org.jetbrains.anko:anko-sdk19:${ankoVersion}",
-            anko_support   : "org.jetbrains.anko:anko-support-v4:${ankoVersion}",
-            anko_appcompat : "org.jetbrains.anko:anko-appcompat-v7:${ankoVersion}",
     ]
 }
 

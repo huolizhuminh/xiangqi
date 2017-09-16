@@ -29,25 +29,8 @@ android {
 }
 
 dependencies {
-    compile(dependency.rxandroid,
-            dependency.retrofit,
-            dependency.gson,
+    compile(
             dependency.design,
-            dependency.percent,
-            dependency.rxbinding,
-            dependency.multidex,
-            dependency.kotlin)
-    testCompile(dependency.junit)
-    compile files('libs/sun.misc.BASE64Decoder.jar')
-}
-
-dependencies {
-    compile(dependency.rxandroid,
-            dependency.retrofit,
-            dependency.gson,
-            dependency.design,
-            dependency.percent,
-            dependency.rxbinding,
             dependency.multidex,
             dependency.loger,
             dependency.kotlin)

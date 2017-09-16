@@ -30,7 +30,7 @@ android {
     buildToolsVersion appBuildToolsVersion
 
     defaultConfig {
-        applicationId "com.minhuizhu.mynewchess"
+        applicationId "com.zhidao.xiangqi"
         minSdkVersion appMinSdkVersion
         targetSdkVersion appTargetSdkVersion
         versionCode appVersionCode
@@ -45,10 +45,10 @@ android {
 
     signingConfigs {
         config {
-            keyAlias 'Key@RuifuSoft'
-            keyPassword 'Key@RuifuSoft_73112fe48c9f4a04bbc5ceddb8a52f2d'
-            storeFile file('../KeyStore/ruifusoft.apk.key.jks')
-            storePassword 'Key.Store@RuifuSoft_45793461568c40218d83aa9a59e200e9'
+            keyAlias 'zhidaokey'
+            keyPassword 'huolizhuminh123'
+            storeFile file('zhidaokey.jks')
+            storePassword 'huolizhuminh123'
         }
     }
 
@@ -107,11 +107,6 @@ android {
             }
         }
     }
-
-    //!! REMARK !!
-    //add this library to work with Robolectric 3.0 when your API level >= 23.
-    //the HttpClient has been removed as of API Level 23, but Robolectric is automatically
-    //shadowing this class. So add it, even though you're not using it.
     useLibrary 'org.apache.http.legacy'
 }
 
@@ -125,11 +120,7 @@ dependencies {
             dependency.haha)
     releaseCompile(dependency.canary_op)
     compile (dependency.kotlin,
-            dependency.umeng_analytics,
-            dependency.umeng_upush,
-            dependency.anko_sdk19,
-            dependency.anko_support,
-            dependency.anko_appcompat)
+           )
     compile 'com.nineoldandroids:library:2.4.0'
-    compile project(':http')
+    compile project(':common')
 }
