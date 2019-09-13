@@ -1,71 +1,27 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
-    ext.kotlinVersion = '1.1.2'
     repositories {
+        google()
         jcenter()
-        mavenCentral()
+        
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
-        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.6.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:${kotlinVersion}"
+        classpath 'com.android.tools.build:gradle:3.4.1'
+        
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
     }
 }
+
 allprojects {
     repositories {
+        google()
         jcenter()
-        flatDir dirs: rootProject.project("common").file("libs")
-    }
-}
-
-ext {
-
-    if (!project.hasProperty('appFlavors')) {
-        appFlavors = "official"
-    }
-
-    appVersionCode = 15
-    appVersionName = "1.9.0(Build ${buildNumber()})"
-
-    isMultiDex = true
-    appJavaCompatibility = JavaVersion.VERSION_1_7
-    appMinSdkVersion = 19
-    appTargetSdkVersion = 25
-    appCompileSdkVersion = 25
-
-    appBuildToolsVersion = "25.0.1"
-    appSupportVersion = "25.0.1"
-    leakcanaryVersion = "1.5"
-    ankoVersion = "0.9"
-
-    dependency = [
-            gson           : "com.google.code.gson:gson:2.7",
-            design         : "com.android.support:design:${appSupportVersion}",
-            appcompat      : "com.android.support:appcompat-v7:${appSupportVersion}",
-            percent        : "com.android.support:percent:${appSupportVersion}",
-            haha           : "com.squareup.haha:haha:2.0.3",
-            canary         : "com.squareup.leakcanary:leakcanary-android:${leakcanaryVersion}",
-            canary_op      : "com.squareup.leakcanary:leakcanary-android-no-op:${leakcanaryVersion}",
-            junit          : "junit:junit:4.9",
-            multidex       : "com.android.support:multidex:1.0.1",
-            mockito        : "org.mockito:mockito-core:2.2.5",
-            robolectric    : "org.robolectric:robolectric:3.0",
-            loger          : "com.orhanobut:logger:1.15",
-            kotlin         : "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}",
-            kotlin_ext     : "org.jetbrains.kotlin:kotlin-android-extensions:${kotlinVersion}",
-    ]
-}
-
-def buildNumber() {
-    if (System.getenv('BUILD_NUMBER') != null) {
-        return System.getenv('BUILD_NUMBER')
-    } else {
-        return new Date().format("MMddHH", TimeZone.getTimeZone("GMT+08:00"))
+        
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
